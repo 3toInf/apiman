@@ -7,6 +7,8 @@ import {
   FolderOpen,
   ChevronDown,
   ChevronRight,
+  ChevronsUpDown,
+  ChevronsDownUp,
   History,
   Database,
   Upload,
@@ -113,7 +115,10 @@ export function App() {
         const restored = Object.fromEntries(
           entries.map((d) => [d.id, d.request]),
         );
-        const prefs = await browser.storage.local.get("activeRequestId");
+        const prefs = await browser.storage.local.get([
+          "activeRequestId",
+          "collapsedNodeIds",
+        ]);
         const id =
           typeof prefs.activeRequestId === "string" &&
           (restored[prefs.activeRequestId] ||
@@ -125,6 +130,17 @@ export function App() {
         setW(saved);
         draftsRef.current = restored;
         setDrafts(restored);
+        const nodeIds = new Set(saved.nodes.map((n) => n.id));
+        setCollapsed(
+          new Set(
+            Array.isArray(prefs.collapsedNodeIds)
+              ? prefs.collapsedNodeIds.filter(
+                  (id): id is string =>
+                    typeof id === "string" && nodeIds.has(id),
+                )
+              : [],
+          ),
+        );
         setSelected(id);
         setOpenIds(id ? [id] : []);
         setHistory(
@@ -507,6 +523,12 @@ export function App() {
   };
   const matches = (r: { name: string; url?: string }) =>
     (r.name + " " + (r.url ?? "")).toLowerCase().includes(search.toLowerCase());
+  const updateCollapsed = (next: Set<string>) => {
+    setCollapsed(next);
+    void browser.storage.local
+      .set({ collapsedNodeIds: [...next] })
+      .catch((e) => fail("Could not save folder state: " + errorText(e)));
+  };
   function tree(parentId?: string, depth = 0): React.ReactNode {
     return [
       ...w.nodes.filter((n) => n.parentId === parentId),
@@ -515,6 +537,7 @@ export function App() {
       .sort((a, b) => a.order - b.order)
       .map((item) => {
         const isNode = "kind" in item;
+        const expanded = !!search || !collapsed.has(item.id);
         const childIds = isNode ? descendants(item.id) : new Set<string>();
         const visible =
           matches(item) ||
@@ -529,37 +552,40 @@ export function App() {
               className={"tree-row " + (selected === item.id ? "selected" : "")}
               style={{ paddingLeft: 12 + depth * 15 }}
             >
+              {isNode && (
+                <button
+                  className="tree-toggle"
+                  aria-label="Toggle folder"
+                  aria-expanded={expanded}
+                  disabled={!!search}
+                  title={
+                    search
+                      ? "Clear search to change folder state"
+                      : `${expanded ? "Collapse" : "Expand"} ${item.name}`
+                  }
+                  onClick={() => {
+                    const next = new Set(collapsed);
+                    if (next.has(item.id)) next.delete(item.id);
+                    else next.add(item.id);
+                    updateCollapsed(next);
+                  }}
+                >
+                  {expanded ? (
+                    <ChevronDown size={13} />
+                  ) : (
+                    <ChevronRight size={13} />
+                  )}
+                </button>
+              )}
               <button className="tree-label" onClick={() => select(item.id)}>
                 {isNode ? (
-                  <>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      aria-label="Toggle folder"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCollapsed((old) => {
-                          const next = new Set(old);
-                          if (next.has(item.id)) next.delete(item.id);
-                          else next.add(item.id);
-                          return next;
-                        });
-                      }}
-                    >
-                      {collapsed.has(item.id) ? (
-                        <ChevronRight size={13} />
-                      ) : (
-                        <ChevronDown size={13} />
-                      )}
-                    </span>
-                    {item.kind === "scenario" ? (
-                      <GitBranch size={15} />
-                    ) : collapsed.has(item.id) ? (
-                      <Folder size={15} />
-                    ) : (
-                      <FolderOpen size={15} />
-                    )}
-                  </>
+                  item.kind === "scenario" ? (
+                    <GitBranch size={15} />
+                  ) : expanded ? (
+                    <FolderOpen size={15} />
+                  ) : (
+                    <Folder size={15} />
+                  )
                 ) : (
                   <span className={"method " + item.method.toLowerCase()}>
                     {item.method}
@@ -633,9 +659,7 @@ export function App() {
                 </Button>
               </div>
             )}
-            {isNode &&
-              (!collapsed.has(item.id) || search) &&
-              tree(item.id, depth + 1)}
+            {isNode && expanded && tree(item.id, depth + 1)}
           </div>
         );
       });
@@ -739,6 +763,42 @@ export function App() {
               <option value="scenario">Scenario</option>
             </select>
           </div>
+          {sidebar === "repository" && (
+            <div
+              className="tree-controls"
+              role="group"
+              aria-label="Repository folders"
+            >
+              <Button
+                aria-label="Expand all folders"
+                title={
+                  search
+                    ? "Clear search to expand all folders"
+                    : "Expand all folders"
+                }
+                disabled={!!search || !w.nodes.some((n) => collapsed.has(n.id))}
+                onClick={() => updateCollapsed(new Set())}
+              >
+                <ChevronsUpDown size={14} /> Expand all
+              </Button>
+              <Button
+                aria-label="Collapse all folders"
+                title={
+                  search
+                    ? "Clear search to collapse all folders"
+                    : "Collapse all folders"
+                }
+                disabled={
+                  !!search || !w.nodes.some((n) => !collapsed.has(n.id))
+                }
+                onClick={() =>
+                  updateCollapsed(new Set(w.nodes.map((n) => n.id)))
+                }
+              >
+                <ChevronsDownUp size={14} /> Collapse all
+              </Button>
+            </div>
+          )}
           <div className="tree">
             {sidebar === "repository" ? (
               w.requests.length || w.nodes.length ? (

@@ -1,4 +1,8 @@
 import { verifyTalendCompatibility } from "./e2e-talend.mjs";
+import {
+  verifyRepositoryTree,
+  verifyFirefoxRepositoryTree,
+} from "./e2e-tree.mjs";
 import { chromium, firefox as playwrightFirefox } from "@playwright/test";
 import { Builder, By } from "selenium-webdriver";
 import firefox from "selenium-webdriver/firefox.js";
@@ -102,6 +106,7 @@ try {
       origin + "/echo",
     );
     await verifyTalendCompatibility(page, origin);
+    await verifyRepositoryTree(page);
     await page.getByRole("button", { name: "Import", exact: true }).click();
     await page
       .getByLabel("Import text")
@@ -418,6 +423,7 @@ try {
           .getAttribute("value"),
         "201",
       );
+      await verifyFirefoxRepositoryTree(driver);
       await writeFile(
         "test-results/firefox-workspace.png",
         await driver.takeScreenshot(),

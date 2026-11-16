@@ -296,6 +296,18 @@ kbd,
   overflow: auto;
   padding: 8px 0;
 }
+.tree-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 8px 13px 0;
+}
+.tree-controls .button {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+}
 .tree-row {
   min-height: 36px;
   display: flex;
@@ -326,8 +338,15 @@ kbd,
   color: #8da5ba;
   flex-shrink: 0;
 }
-.tree-label > span[role="button"] {
+.tree-toggle {
   display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+  margin-right: 6px;
+  border: 0;
+  background: transparent;
   color: #7b8a99;
 }
 .tree-menu-button {
@@ -1681,7 +1700,8 @@ kbd {
   background: #2b343b;
   border-color: #46515b;
 }
-.tree-menu .button {
+.tree-menu .button,
+.tree-controls .button {
   background: #34414b;
   border-color: #4a5965;
   color: #d0d9e1;
