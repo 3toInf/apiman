@@ -1,0 +1,9 @@
+node_modules/
+.output/
+.wxt/
+.superpowers/
+coverage/
+test-results/
+playwright-report/
+*.log
+.env*

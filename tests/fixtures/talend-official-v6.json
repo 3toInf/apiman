@@ -1,0 +1,283 @@
+{
+  "version": 6,
+  "entities": [
+    {
+      "entity": {
+        "type": "Project",
+        "id": "79794b99-1404-4089-b891-0aeeeb0a9f1a",
+        "name": "use-service-account"
+      },
+      "children": [
+        {
+          "entity": {
+            "type": "Service",
+            "id": "c3d6e86f-b1ae-4f7e-a7f1-2f9c7b8f7864",
+            "name": "GET-/account/users"
+          },
+          "children": [
+            {
+              "entity": {
+                "type": "Request",
+                "method": {
+                  "link": "http://tools.ietf.org/html/rfc7231#section-4.3.1",
+                  "name": "GET"
+                },
+                "body": {
+                  "formBody": {
+                    "overrideContentType": true,
+                    "encoding": "application/x-www-form-urlencoded",
+                    "items": []
+                  },
+                  "bodyType": "Text",
+                  "textBody": "{\n  \"audience\":\"https://api.<env>.cloud.talend.com\",\n  \"grant_type\":\"client_credentials\"\n}"
+                },
+                "uri": {
+                  "query": {
+                    "delimiter": "&",
+                    "items": []
+                  },
+                  "scheme": {
+                    "secure": true,
+                    "name": "https",
+                    "version": "V11"
+                  },
+                  "host": "example.test",
+                  "path": "/account/users"
+                },
+                "id": "e6c5d7d4-c26b-44e7-b107-bbe5bf131d1c",
+                "name": "use-service-account-to-get-users",
+                "headers": [
+                  {
+                    "enabled": true,
+                    "name": "Authorization",
+                    "value": "Bearer ${getEntityById(\"17a72f0a-f3e1-42af-afd1-8394564350e5\").\"response\".\"body\"}"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "entity": {
+            "type": "Service",
+            "id": "aed68b54-2098-4c23-a0fd-3af03a8dfd01",
+            "name": "POST-/processing/executions"
+          },
+          "children": [
+            {
+              "entity": {
+                "type": "Request",
+                "method": {
+                  "requestBody": true,
+                  "link": "http://tools.ietf.org/html/rfc7231#section-4.3.3",
+                  "name": "POST"
+                },
+                "body": {
+                  "formBody": {
+                    "overrideContentType": true,
+                    "encoding": "application/x-www-form-urlencoded",
+                    "items": []
+                  },
+                  "bodyType": "Text",
+                  "textBody": "{\n  \"executable\": \"id_of_the_task_to_be_run\",\n  \"logLevel\": \"WARN\"\n}"
+                },
+                "uri": {
+                  "query": {
+                    "delimiter": "&",
+                    "items": []
+                  },
+                  "scheme": {
+                    "secure": true,
+                    "name": "https",
+                    "version": "V11"
+                  },
+                  "host": "example.test",
+                  "path": "/processing/executions"
+                },
+                "id": "c6a21fba-0e62-4d2a-b3a2-0ea135d5052f",
+                "name": "service-account-to-run-task",
+                "headers": [
+                  {
+                    "enabled": true,
+                    "name": "Authorization",
+                    "value": "Bearer ${getEntityById(\"17a72f0a-f3e1-42af-afd1-8394564350e5\").\"response\".\"body\"}"
+                  },
+                  {
+                    "enabled": true,
+                    "name": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "entity": {
+            "type": "Service",
+            "id": "2df6343f-3abc-4547-bced-30718ef4959e",
+            "name": "POST-security/oauth/token"
+          },
+          "children": [
+            {
+              "entity": {
+                "type": "Request",
+                "method": {
+                  "requestBody": true,
+                  "link": "http://tools.ietf.org/html/rfc7231#section-4.3.3",
+                  "name": "POST"
+                },
+                "body": {
+                  "formBody": {
+                    "overrideContentType": true,
+                    "encoding": "application/x-www-form-urlencoded",
+                    "items": []
+                  },
+                  "bodyType": "Text",
+                  "textBody": "{\n  \"audience\":\"https://api.<env>.cloud.talend.com\",\n  \"grant_type\":\"client_credentials\"\n}"
+                },
+                "uri": {
+                  "query": {
+                    "delimiter": "&",
+                    "items": []
+                  },
+                  "scheme": {
+                    "secure": true,
+                    "name": "https",
+                    "version": "V11"
+                  },
+                  "host": "example.test",
+                  "path": "/security/oauth/token"
+                },
+                "id": "17a72f0a-f3e1-42af-afd1-8394564350e5",
+                "name": "create-service-account-token",
+                "headers": [
+                  {
+                    "enabled": true,
+                    "name": "Authorization",
+                    "value": "Basic ${\"id:secret\".base64()}"
+                  },
+                  {
+                    "enabled": true,
+                    "name": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "entity": {
+            "type": "Service",
+            "id": "83de25a8-b5c1-4dfd-bb92-121252a3b1d0",
+            "name": "POST-security/workspaces/{workspaceId}/service-accounts/{serviceAccountId}/permissions"
+          },
+          "children": [
+            {
+              "entity": {
+                "type": "Request",
+                "method": {
+                  "requestBody": true,
+                  "link": "http://tools.ietf.org/html/rfc7231#section-4.3.3",
+                  "name": "POST"
+                },
+                "body": {
+                  "formBody": {
+                    "overrideContentType": true,
+                    "encoding": "application/x-www-form-urlencoded",
+                    "items": []
+                  },
+                  "bodyType": "Text",
+                  "textBody": "[\"EXECUTE\"]"
+                },
+                "uri": {
+                  "query": {
+                    "delimiter": "&",
+                    "items": []
+                  },
+                  "scheme": {
+                    "secure": true,
+                    "name": "https",
+                    "version": "V11"
+                  },
+                  "host": "example.test",
+                  "path": "/security/workspaces/{workspaceId}/service-accounts/{serviceAccountId}/permissions"
+                },
+                "id": "617f2596-43e7-48c9-94a6-a75ed82a40f8",
+                "name": "workspace-permissions-for-service-account",
+                "headers": [
+                  {
+                    "enabled": true,
+                    "name": "Authorization",
+                    "value": "Bearer <your_personal_access_token>"
+                  },
+                  {
+                    "enabled": true,
+                    "name": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "entity": {
+            "type": "Service",
+            "id": "1cf8d310-76e0-4a68-8090-566ed6426085",
+            "name": "post-account/service-accounts"
+          },
+          "children": [
+            {
+              "entity": {
+                "type": "Request",
+                "method": {
+                  "requestBody": true,
+                  "link": "http://tools.ietf.org/html/rfc7231#section-4.3.3",
+                  "name": "POST"
+                },
+                "body": {
+                  "formBody": {
+                    "overrideContentType": true,
+                    "encoding": "application/x-www-form-urlencoded",
+                    "items": []
+                  },
+                  "bodyType": "Text",
+                  "textBody": "{\n  \"name\": \"myServiceAccount\",\n  \"permissions\": [\n     \"TMC_USER_MANAGEMENT\",\n     \"TMC_ROLE_MANAGEMENT\",\n     \"AUDIT_LOGS_VIEW\",\n     \"TMC_ENGINE_USE\"\n  ]\n}"
+                },
+                "uri": {
+                  "query": {
+                    "delimiter": "&",
+                    "items": []
+                  },
+                  "scheme": {
+                    "secure": true,
+                    "name": "https",
+                    "version": "V11"
+                  },
+                  "host": "example.test",
+                  "path": "/account/service-accounts"
+                },
+                "id": "31e435ca-7fd0-4ffd-8d7b-4f1c90053ab8",
+                "name": "create-service-account",
+                "headers": [
+                  {
+                    "enabled": true,
+                    "name": "Authorization",
+                    "value": "Bearer your_personal_access_token"
+                  },
+                  {
+                    "enabled": true,
+                    "name": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "version": 6,
+  "entities": [
+    {
+      "entity": {
+        "id": "fixture-project",
+        "type": "Project",
+        "name": "Migration checks"
+      },
+      "children": [
+        {
+          "entity": {
+            "id": "fixture-scenario",
+            "type": "Scenario",
+            "name": "Echo chain"
+          },
+          "children": [
+            {
+              "entity": {
+                "id": "fixture-first",
+                "type": "Request",
+                "name": "First",
+                "method": { "name": "GET" },
+                "uri": {
+                  "scheme": { "name": "http", "secure": false },
+                  "host": "127.0.0.1",
+                  "port": "7777",
+                  "path": "/echo",
+                  "query": { "delimiter": "&", "items": [] }
+                },
+                "headers": [
+                  {
+                    "name": "Accept",
+                    "value": "application/json",
+                    "enabled": true
+                  }
+                ],
+                "assertions": [
+                  {
+                    "comparison": "Equals",
+                    "subject": "ResponseStatus",
+                    "path": "code",
+                    "enabled": true,
+                    "value": "200"
+                  },
+                  {
+                    "comparison": "Exists",
+                    "subject": "ResponseJsonBody",
+                    "path": "$.message",
+                    "enabled": true,
+                    "value": ""
+                  }
+                ]
+              }
+            },
+            {
+              "entity": {
+                "id": "fixture-second",
+                "type": "Request",
+                "name": "Second",
+                "method": { "name": "GET" },
+                "uri": {
+                  "scheme": { "name": "http", "secure": false },
+                  "host": "127.0.0.1",
+                  "port": "7777",
+                  "path": "/${\"First\".\"response\".\"body\".jsonPath(\"$.message\")}",
+                  "query": { "delimiter": "&", "items": [] }
+                },
+                "assertions": [
+                  {
+                    "comparison": "Equals",
+                    "subject": "ResponseStatus",
+                    "path": "code",
+                    "enabled": true,
+                    "value": "200"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "environments": [
+    {
+      "id": "fixture-env",
+      "name": "Local",
+      "variables": {
+        "token": {
+          "name": "token",
+          "value": "test-token",
+          "enabled": true,
+          "private": true
+        }
+      }
+    }
+  ]
+}
