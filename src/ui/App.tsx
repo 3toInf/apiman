@@ -38,13 +38,14 @@ import {
   type RunReport,
 } from "../core/model";
 import { compileRequest, executeRequest } from "../core/http";
+import { validateWorkspace } from "../core/schema";
 import { runScenario } from "../core/runner";
 import { interpolate, bindRequestReferences } from "../core/expressions";
-import { sensitiveValues, redactTree } from "../importers";
+import { sensitiveValues } from "../importers";
 import {
   store,
   mergeWorkspace,
-  redactResult,
+  redactReport,
   type HistoryEntry,
 } from "../storage/store";
 import { Button, Modal, Empty, errorText } from "./components";
@@ -138,7 +139,17 @@ export function App() {
     const t = setTimeout(() => setNotice(""), 3500);
     return () => clearTimeout(t);
   }, [notice]);
-  const saveWorkspace = (next: Workspace) => {
+  const saveWorkspace = (
+    next: Workspace,
+    options: { savedDraft?: RequestDefinition; removeDraftIds?: string[] } = {},
+  ): Promise<boolean> => {
+    try {
+      validateWorkspace(next);
+    } catch (e) {
+      fail(e);
+      return Promise.resolve(false);
+    }
+    const previous = workspaceRef.current;
     if (
       JSON.stringify(next.environments) !==
         JSON.stringify(workspaceRef.current.environments) ||
@@ -149,8 +160,19 @@ export function App() {
     }
     workspaceRef.current = next;
     setW(next);
-    queue.current = queue.current.catch(() => {}).then(() => store.save(next));
-    void queue.current.catch(fail);
+    queue.current = queue.current
+      .catch(() => {})
+      .then(() => store.save(next, options));
+    return queue.current
+      .then(() => true)
+      .catch((e) => {
+        if (workspaceRef.current === next) {
+          workspaceRef.current = previous;
+          setW(previous);
+        }
+        fail(e);
+        return false;
+      });
   };
   const edit = (r: RequestDefinition) => {
     const before =
@@ -199,7 +221,7 @@ export function App() {
     !!current &&
     JSON.stringify(current) !==
       JSON.stringify(w.requests.find((r) => r.id === selected));
-  const saveRequest = () => {
+  const saveRequest = async () => {
     const candidate =
       draftsRef.current[selected] ??
       workspaceRef.current.requests.find((r) => r.id === selected);
@@ -213,22 +235,27 @@ export function App() {
       return;
     }
     const old = workspaceRef.current;
-    saveWorkspace({
-      ...old,
-      requests: old.requests.some((x) => x.id === r.id)
-        ? old.requests.map((x) => (x.id === r.id ? r : x))
-        : [...old.requests, r],
-      scenarios: old.scenarios.map((s) =>
-        s.id === r.parentId && !s.requestIds.includes(r.id)
-          ? { ...s, requestIds: [...s.requestIds, r.id] }
-          : s,
-      ),
-    });
+    const saved = await saveWorkspace(
+      {
+        ...old,
+        requests: old.requests.some((x) => x.id === r.id)
+          ? old.requests.map((x) => (x.id === r.id ? r : x))
+          : [...old.requests, r],
+        scenarios: old.scenarios.map((s) =>
+          s.id === r.parentId && !s.requestIds.includes(r.id)
+            ? { ...s, requestIds: [...s.requestIds, r.id] }
+            : s,
+        ),
+      },
+      { savedDraft: candidate },
+    );
+    if (!saved) return;
+    if (JSON.stringify(draftsRef.current[r.id]) !== JSON.stringify(candidate))
+      return;
     const next = { ...draftsRef.current };
     delete next[r.id];
     draftsRef.current = next;
     setDrafts(next);
-    void store.drafts.delete(r.id).catch(fail);
     setNotice("Request saved");
   };
   const refreshHistory = async () =>
@@ -325,16 +352,7 @@ export function App() {
             setReport(r);
             if (r.status === "running" && Date.now() - lastSaved < 1000) return;
             lastSaved = Date.now();
-            const safe = redactTree(
-              {
-                ...r,
-                steps: r.steps.map((step) => ({
-                  ...step,
-                  result: redactResult(step.result, secrets),
-                })),
-              },
-              secrets,
-            );
+            const safe = redactReport(r, secrets);
             void store.reports.put(safe).catch(fail);
           },
         },
@@ -404,30 +422,33 @@ export function App() {
     saveWorkspace(next);
     select(id);
   };
-  const remove = (id: string) => {
+  const remove = async (id: string) => {
     if (!confirm("Delete this item and its children? This cannot be undone."))
       return;
     const ids = descendants(id);
     const removedRequests = new Set(
-      w.requests
+      [...w.requests, ...Object.values(draftsRef.current)]
         .filter((r) => r.id === id || (r.parentId && ids.has(r.parentId)))
         .map((r) => r.id),
     );
-    saveWorkspace({
-      ...w,
-      nodes: w.nodes.filter((n) => !ids.has(n.id)),
-      requests: w.requests.filter((r) => !removedRequests.has(r.id)),
-      scenarios: w.scenarios
-        .filter((s) => !ids.has(s.id))
-        .map((s) => ({
-          ...s,
-          requestIds: s.requestIds.filter((r) => !removedRequests.has(r)),
-        })),
-    });
+    const saved = await saveWorkspace(
+      {
+        ...w,
+        nodes: w.nodes.filter((n) => !ids.has(n.id)),
+        requests: w.requests.filter((r) => !removedRequests.has(r.id)),
+        scenarios: w.scenarios
+          .filter((s) => !ids.has(s.id))
+          .map((s) => ({
+            ...s,
+            requestIds: s.requestIds.filter((r) => !removedRequests.has(r)),
+          })),
+      },
+      { removeDraftIds: [...removedRequests] },
+    );
+    if (!saved) return;
     const next = { ...draftsRef.current };
     for (const rid of removedRequests) {
       delete next[rid];
-      void store.drafts.delete(rid).catch(fail);
     }
     draftsRef.current = next;
     setDrafts(next);

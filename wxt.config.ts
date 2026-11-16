@@ -2,6 +2,15 @@ import { defineConfig } from "wxt";
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
   manifestVersion: 3,
+  zip: {
+    excludeSources: [
+      "test-results/**",
+      "playwright-report/**",
+      "coverage/**",
+      ".superpowers/**",
+      "*.log",
+    ],
+  },
   hooks: {
     "vite:build:extendConfig": (entrypoints, config) => {
       if (entrypoints.some((entry) => entry.type === "background")) return;

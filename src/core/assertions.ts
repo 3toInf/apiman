@@ -15,6 +15,7 @@ const parse = (s: string): unknown => {
 };
 function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
   if (!a || !b || typeof a !== "object" || typeof b !== "object") return false;
   const ak = Object.keys(a),
     bk = Object.keys(b);

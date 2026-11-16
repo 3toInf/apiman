@@ -1,0 +1,114 @@
+{
+  "version": 6,
+  "entities": [
+    {
+      "entity": {
+        "type": "Project",
+        "id": "785d2355-4703-4101-a455-2ea5578703dc",
+        "name": "Migration checks"
+      },
+      "children": [
+        {
+          "entity": {
+            "type": "Scenario",
+            "id": "fee40977-13ed-4e2a-9bc2-4bb733bab214",
+            "name": "Echo chain"
+          },
+          "children": [
+            {
+              "entity": {
+                "type": "Request",
+                "method": {
+                  "name": "GET"
+                },
+                "uri": {
+                  "query": {
+                    "delimiter": "&",
+                    "items": []
+                  },
+                  "scheme": {
+                    "name": "http",
+                    "version": "V11"
+                  },
+                  "host": "127.0.0.1",
+                  "path": "/echo"
+                },
+                "id": "507eae4a-9a4f-4ac4-93af-85bcec676142",
+                "name": "First",
+                "headers": [
+                  {
+                    "enabled": true,
+                    "name": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "assertions": [
+                  {
+                    "comparison": "Equals",
+                    "subject": "ResponseStatus",
+                    "enabled": true,
+                    "path": "code",
+                    "value": "200"
+                  },
+                  {
+                    "comparison": "Exists",
+                    "subject": "ResponseJsonBody",
+                    "enabled": true,
+                    "path": "$.message",
+                    "value": ""
+                  }
+                ]
+              }
+            },
+            {
+              "entity": {
+                "type": "Request",
+                "method": {
+                  "name": "GET"
+                },
+                "uri": {
+                  "query": {
+                    "delimiter": "&",
+                    "items": []
+                  },
+                  "scheme": {
+                    "name": "http",
+                    "version": "V11"
+                  },
+                  "host": "127.0.0.1",
+                  "path": "/${\"First\".\"response\".\"body\".jsonPath(\"$.message\")}"
+                },
+                "id": "7eabea3d-9236-4e73-afdc-29fe06f74bcd",
+                "name": "Second",
+                "assertions": [
+                  {
+                    "comparison": "Equals",
+                    "subject": "ResponseStatus",
+                    "enabled": true,
+                    "path": "code",
+                    "value": "200"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "environments": [
+    {
+      "id": "b01bac86-07c4-471f-8007-de8525c834ac",
+      "name": "Local",
+      "variables": {
+        "c28c50a5-adfc-47da-8a41-413d9ecb3182": {
+          "name": "token",
+          "value": null,
+          "enabled": true,
+          "private": true,
+          "createdAt": "2026-11-16T20:15:41.789+08:00"
+        }
+      }
+    }
+  ]
+}

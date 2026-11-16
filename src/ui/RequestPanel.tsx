@@ -32,8 +32,8 @@ import {
 } from "../core/model";
 import { evaluateAssertionsAsync } from "../core/assertions";
 import { parseHtmlResponse } from "../core/html";
-import { exportCurl, redactTree, sensitiveValues } from "../importers";
-import { store, redactResult } from "../storage/store";
+import { exportCurl, sensitiveValues } from "../importers";
+import { store, redactReport } from "../storage/store";
 const targets: Assertion["target"][] = [
   "status",
   "statusText",
@@ -831,16 +831,7 @@ export function RunResults({
             download(
               "apiman-run.json",
               JSON.stringify(
-                redactTree(
-                  {
-                    ...report,
-                    steps: report.steps.map((step) => ({
-                      ...step,
-                      result: redactResult(step.result, sensitiveValues(w)),
-                    })),
-                  },
-                  sensitiveValues(w),
-                ),
+                redactReport(report, sensitiveValues(w)),
                 (_k, v) => (v instanceof Blob ? undefined : v),
                 2,
               ),

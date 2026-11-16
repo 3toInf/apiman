@@ -319,3 +319,26 @@ it("exports a selected scenario with external request dependencies", async () =>
   expect(restored.nodes.map((n) => n.id)).toContain("project");
   expect(restored.scenarios[0]?.requestIds).toEqual([r.id]);
 });
+
+it("imports the native Talend roundtrip scenario and null private values", async () => {
+  const { readFileSync } = await import("node:fs");
+  const report = importDocument(
+    readFileSync(
+      new URL("./fixtures/talend-roundtrip-v6.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  expect(report.workspace.scenarios[0]?.requestIds).toEqual(
+    report.workspace.requests.map((r) => r.id),
+  );
+  expect(report.workspace.requests.map((r) => r.assertions.length)).toEqual([
+    2, 1,
+  ]);
+  expect(report.workspace.requests.every((r) => !r.unsupported.length)).toBe(
+    true,
+  );
+  expect(report.workspace.environments[0]?.variables[0]?.value).toBe("");
+  expect(report.workspace.requests[1]?.referenceIds?.['"First"']).toBe(
+    report.workspace.requests[0]?.id,
+  );
+});

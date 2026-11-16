@@ -415,11 +415,20 @@ export function importCurl(text: string): ImportReport {
         r.body.fileName = value.slice(1);
       } else {
         r.body.type = "text";
-        r.body.text +=
-          (r.body.text ? "&" : "") +
-          (t === "--data-urlencode"
-            ? value.split("=").map(encodeURIComponent).join("=")
-            : value);
+        let encoded = value;
+        if (t === "--data-urlencode") {
+          const eq = value.indexOf("=");
+          if (eq >= 0)
+            encoded =
+              (eq > 0 ? value.slice(0, eq) + "=" : "") +
+              encodeURIComponent(value.slice(eq + 1));
+          else if (value.includes("@"))
+            r.unsupported.push(
+              "Select and encode the local file referenced by curl --data-urlencode",
+            );
+          else encoded = encodeURIComponent(value);
+        }
+        r.body.text += (r.body.text ? "&" : "") + encoded;
       }
       if (!explicit) r.method = "POST";
     } else if (["-F", "--form"].includes(t)) {
@@ -466,6 +475,11 @@ export function importCurl(text: string): ImportReport {
     else if (!r.url) r.url = t;
     else unsupported.push(t);
   }
+  if (
+    ["text", "binary"].includes(r.body.type) &&
+    !r.headers.some((h) => h.enabled && h.name.toLowerCase() === "content-type")
+  )
+    r.headers.push(pair("Content-Type", "application/x-www-form-urlencoded"));
   if (!r.url) throw new Error("curl URL missing");
   if (unsupported.length)
     r.unsupported.push("Unsupported curl options: " + unsupported.join(" "));

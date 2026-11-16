@@ -35,22 +35,44 @@ export class WorkspaceStore extends Dexie {
     const row = await this.snapshots.get("main");
     return row ? validateWorkspace(row.workspace) : undefined;
   }
-  async save(workspace: Workspace) {
+  async save(
+    workspace: Workspace,
+    options: { savedDraft?: RequestDefinition; removeDraftIds?: string[] } = {},
+  ) {
     const validated = validateWorkspace(workspace);
-    await this.transaction("rw", this.snapshots, this.files, async () => {
-      if (workspace.attachments) {
-        for (const f of workspace.attachments) {
-          const bytes = Uint8Array.from(atob(f.base64), (c) => c.charCodeAt(0));
-          await this.files.put({
-            id: f.id,
-            name: f.name,
-            blob: new Blob([bytes], { type: f.type }),
-          });
+    await this.transaction(
+      "rw",
+      this.snapshots,
+      this.files,
+      this.drafts,
+      async () => {
+        if (workspace.attachments) {
+          for (const f of workspace.attachments) {
+            const bytes = Uint8Array.from(atob(f.base64), (c) =>
+              c.charCodeAt(0),
+            );
+            await this.files.put({
+              id: f.id,
+              name: f.name,
+              blob: new Blob([bytes], { type: f.type }),
+            });
+          }
         }
-      }
-      delete validated.attachments;
-      await this.snapshots.put({ id: "main", workspace: validated });
-    });
+        if (options.savedDraft) {
+          const current = await this.drafts.get(options.savedDraft.id);
+          if (
+            current &&
+            JSON.stringify(current.request) ===
+              JSON.stringify(options.savedDraft)
+          )
+            await this.drafts.delete(current.id);
+        }
+        if (options.removeDraftIds?.length)
+          await this.drafts.bulkDelete(options.removeDraftIds);
+        delete validated.attachments;
+        await this.snapshots.put({ id: "main", workspace: validated });
+      },
+    );
   }
   async addFile(file: File) {
     const id = uid();
@@ -120,13 +142,52 @@ export class WorkspaceStore extends Dexie {
     return copy;
   }
 }
+export function executionSecrets(
+  result: ExecutionResult,
+  secrets: string[],
+): string[] {
+  const found = [...secrets];
+  for (const [name, value] of [
+    ...result.headers,
+    ...(result.requestHeaders ?? []),
+  ]) {
+    if (
+      value &&
+      /^(authorization|proxy-authorization|cookie|set-cookie|x-api-key|api-key)$/i.test(
+        name ?? "",
+      )
+    ) {
+      found.push(value);
+      if (/authorization$/i.test(name ?? ""))
+        found.push(value.replace(/^\S+\s+/, ""));
+    }
+  }
+  return [...new Set(found.filter(Boolean))];
+}
+export function redactReport(report: RunReport, secrets: string[]): RunReport {
+  const all = [
+    ...new Set(
+      report.steps.flatMap((step) => executionSecrets(step.result, secrets)),
+    ),
+  ];
+  return redactTree(
+    {
+      ...report,
+      steps: report.steps.map((step) => ({
+        ...step,
+        result: redactResult(step.result, all),
+      })),
+    },
+    all,
+  );
+}
 export function redactResult(
   result: ExecutionResult,
   secrets: string[],
 ): ExecutionResult {
   const rest = { ...result };
   delete rest.blob;
-  const safe = redactTree(rest, secrets);
+  const safe = redactTree(rest, executionSecrets(result, secrets));
   for (const list of [safe.headers, safe.requestHeaders ?? []])
     for (const h of list)
       if (
@@ -164,6 +225,9 @@ export function mergeWorkspace(
     ...(copy.attachments ?? []),
   ])
     map.set(e.id, uid());
+  for (const r of copy.requests)
+    for (const id of [r.body.fileId, ...r.body.fields.map((f) => f.fileId)])
+      if (id && !map.has(id)) map.set(id, uid());
   const remap = (id: string | undefined) =>
     id ? (map.get(id) ?? id) : undefined;
   for (const n of copy.nodes) {

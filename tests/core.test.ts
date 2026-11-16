@@ -96,6 +96,41 @@ describe("real HTTP and scenarios", () => {
     expect(data.headers.authorization).toBe("Basic dTpw");
     expect(response.status).toBe(200);
   });
+  it("sends multipart bytes, filenames and duplicate fields to a real server", async () => {
+    const r = newRequest();
+    r.url = origin + "/upload";
+    r.method = "POST";
+    r.body = {
+      type: "multipart",
+      text: "",
+      fields: [
+        { id: "a", name: "tag", value: "one", enabled: true },
+        { id: "b", name: "tag", value: "two", enabled: true },
+        {
+          id: "f",
+          name: "file",
+          value: "",
+          enabled: true,
+          fileId: "blob",
+          fileName: "hello.txt",
+        },
+      ],
+    };
+    const response = await executeRequest(
+      await compileRequest(
+        r,
+        context,
+        async () => new Blob(["uploaded bytes"], { type: "text/plain" }),
+      ),
+    );
+    const data = JSON.parse(response.body);
+    expect(data.headers["content-type"]).toMatch(
+      /^multipart\/form-data; boundary=/,
+    );
+    expect(data.body).toContain('filename="hello.txt"');
+    expect(data.body).toContain("uploaded bytes");
+    expect(data.body.match(/name="tag"/g)).toHaveLength(2);
+  });
   it("returns non-2xx HTTP responses and distinguishes timeout, cancellation and size limit", async () => {
     const r = newRequest();
     r.url = origin + "/fail";

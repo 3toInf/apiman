@@ -179,10 +179,9 @@ try {
     );
 
     const flow = JSON.parse(
-      (await readFile("tests/fixtures/flow-v6.json", "utf8")).replaceAll(
-        "7777",
-        String(server.address().port),
-      ),
+      (
+        await readFile("tests/fixtures/talend-roundtrip-v6.json", "utf8")
+      ).replaceAll("127.0.0.1", `127.0.0.1:${server.address().port}`),
     );
     await page.getByRole("button", { name: "Import", exact: true }).click();
     await page.getByLabel("Import text").fill(JSON.stringify(flow));
@@ -199,32 +198,100 @@ try {
     console.log(
       "PASS Chromium: editable assertions, regex worker, XPath, safe HTML/forms, imported chained scenario",
     );
+    if (!process.argv.includes("--skip-slow")) {
+      await page
+        .getByRole("button", { name: "New request", exact: true })
+        .click();
+      await page
+        .getByLabel("Request URL", { exact: true })
+        .fill(origin + "/slow");
+      await page.getByRole("button", { name: "SETTINGS", exact: true }).click();
+      await page.getByLabel("Timeout (ms)", { exact: true }).fill("60000");
+      await page
+        .getByRole("button", { name: "Send request", exact: true })
+        .click();
+      await page
+        .getByTestId("response-status")
+        .filter({ hasText: "200" })
+        .waitFor({ timeout: 45000 });
+      await page
+        .getByRole("button", { name: "Send request", exact: true })
+        .click();
+      await page
+        .getByRole("button", { name: "Cancel request", exact: true })
+        .click();
+      await page
+        .getByTestId("response-status")
+        .filter({ hasText: "CANCELLED" })
+        .waitFor();
+      console.log("PASS Chromium: request survives 35 seconds, cancellation");
+    }
+    const regressions = [];
+    await page.getByText("Migration checks", { exact: true }).first().click();
+    await page
+      .getByRole("button", { name: "Add request", exact: true })
+      .click();
+    await page
+      .getByLabel("Request name", { exact: true })
+      .fill("Unsaved child");
+    await page
+      .locator(".tree-row")
+      .filter({ hasText: "Migration checks" })
+      .hover();
+    await page
+      .locator(".tree-row")
+      .filter({ hasText: "Migration checks" })
+      .getByTitle("Item actions")
+      .click();
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.locator(".tree-menu button").last().click();
+    await page
+      .getByText("Migration checks", { exact: true })
+      .waitFor({ state: "hidden" });
+    const orphaned = await page.evaluate(async () => {
+      const db = await new Promise((resolve, reject) => {
+        const request = indexedDB.open("apiman");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      return new Promise((resolve) => {
+        const request = db.transaction("drafts").objectStore("drafts").getAll();
+        request.onsuccess = () => {
+          resolve(
+            request.result.some((d) => d.request.name === "Unsaved child"),
+          );
+          db.close();
+        };
+      });
+    });
+    if (orphaned)
+      regressions.push("Deleted folder left a persisted child draft");
     await page
       .getByRole("button", { name: "New request", exact: true })
       .click();
     await page
+      .getByLabel("Request name", { exact: true })
+      .fill("Protected draft");
+    await page
       .getByLabel("Request URL", { exact: true })
-      .fill(origin + "/slow");
+      .fill(origin + "/pending");
     await page.getByRole("button", { name: "SETTINGS", exact: true }).click();
-    await page.getByLabel("Timeout (ms)", { exact: true }).fill("60000");
+    await page.getByLabel("Timeout (ms)", { exact: true }).fill("0");
     await page
-      .getByRole("button", { name: "Send request", exact: true })
+      .getByRole("button", { name: "Save request", exact: true })
       .click();
-    await page
-      .getByTestId("response-status")
-      .filter({ hasText: "200" })
-      .waitFor({ timeout: 45000 });
-    await page
-      .getByRole("button", { name: "Send request", exact: true })
-      .click();
-    await page
-      .getByRole("button", { name: "Cancel request", exact: true })
-      .click();
-    await page
-      .getByTestId("response-status")
-      .filter({ hasText: "CANCELLED" })
-      .waitFor();
-    console.log("PASS Chromium: request survives 35 seconds, cancellation");
+    await page.locator(".global-error").waitFor();
+    await page.reload();
+    await page.getByLabel("Request name", { exact: true }).waitFor();
+    if (
+      (await page.getByLabel("Request name", { exact: true }).inputValue()) !==
+      "Protected draft"
+    )
+      regressions.push("Rejected save lost its recoverable draft");
+    assert.deepEqual(regressions, []);
+    console.log(
+      "PASS Chromium: atomic failed-save recovery and deletion of unsaved folder children",
+    );
     await page.screenshot({
       path: "test-results/chromium-workspace.png",
       fullPage: true,
@@ -299,13 +366,63 @@ try {
           .getText(),
         /Hello from apiman/,
       );
+      await driver
+        .findElement(By.xpath('//button[contains(.,"Add assertion")]'))
+        .click();
+      await driver.wait(
+        async () =>
+          (await driver.findElements(By.css(".assertion-result.passed")))
+            .length > 0,
+        10000,
+      );
+      const expected = await driver.findElement(
+        By.css('input[aria-label="Expected value"]'),
+      );
+      await expected.clear();
+      await expected.sendKeys("201");
+      await driver.wait(
+        async () =>
+          (await driver.findElements(By.css(".assertion-result.failed")))
+            .length > 0,
+        10000,
+      );
+      const requestName = await driver.findElement(
+        By.css('input[aria-label="Request name"]'),
+      );
+      await requestName.clear();
+      await requestName.sendKeys("Firefox echo");
+      await (await button("Save request")).click();
+      await driver.wait(
+        async () =>
+          (await driver.findElements(By.css(".unsaved"))).length === 0,
+        10000,
+      );
+      await driver.navigate().refresh();
+      await driver.wait(
+        async () =>
+          (await driver.findElements(By.css('input[aria-label="Request URL"]')))
+            .length > 0,
+        10000,
+      );
+      assert.equal(
+        await driver
+          .findElement(By.css('input[aria-label="Request URL"]'))
+          .getAttribute("value"),
+        origin + "/firefox",
+      );
+      assert.equal(
+        await driver
+          .findElement(By.css('input[aria-label="Expected value"]'))
+          .getAttribute("value"),
+        "201",
+      );
       await writeFile(
         "test-results/firefox-workspace.png",
         await driver.takeScreenshot(),
         "base64",
       );
       console.log(
-        "PASS Firefox: actual MV3 extension HTTP and response rendering",
+        "PASS Firefox: actual MV3 extension HTTP, assertions, save/reload and response rendering",
       );
     } finally {
       await driver.quit();

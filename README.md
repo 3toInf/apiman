@@ -79,3 +79,5 @@ E2E 需要 Python 3（创建临时 XPI），Selenium/geckodriver 和 Playwright 
 `web-ext` 检查允许三处已审查的 `innerHTML` 提示：React DOM 的两处内部实现，以及 `core/html.ts` 在未连接文档的 `<template>` 中解析 HTML 后按白名单清理的实现。其他警告和所有错误均失败。测试覆盖预览不执行脚本或发起资源请求。
 
 代码边界：`src/core` 请求/表达式/断言/执行器，`src/importers` 格式适配，`src/storage` 本地持久化，`src/ui` 工作台。构建产物在 `.output`，测试截图在 `test-results`，实现与审查记录见 [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md)。
+
+断言比较遵循 Talend 的类型语义：数字按数值比较，普通字符串按长度比较；JSON 断言保留数组/对象类型。[Talend 断言操作符说明](https://help.qlik.com/talend/en-US/api-tester-user-guide/Cloud/assertion-operators)。

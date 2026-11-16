@@ -1,4 +1,4 @@
-import { bindRequestReferences } from "../core/expressions";
+import { bindRequestReferences, interpolate } from "../core/expressions";
 import { environmentContext } from "../core/model";
 import { parse } from "yaml";
 import { validateWorkspace } from "../core/schema";
@@ -56,7 +56,21 @@ export function importDocument(text: string): ImportReport {
 export function sensitiveValues(w: Workspace): string[] {
   return [
     ...w.environments.flatMap((e) =>
-      e.variables.filter((v) => v.private).map((v) => v.value),
+      e.variables
+        .filter((v) => v.private)
+        .flatMap((v) => {
+          try {
+            return [
+              v.value,
+              interpolate(
+                v.value,
+                environmentContext({ ...w, activeEnvironmentId: e.id }),
+              ),
+            ];
+          } catch {
+            return [v.value];
+          }
+        }),
     ),
     ...w.requests.flatMap((r) => [
       r.auth.password ?? "",
@@ -70,7 +84,15 @@ export function sensitiveValues(w: Workspace): string[] {
         )
         .map((h) => h.value),
     ]),
-  ].filter((v) => v && !v.includes("${"));
+  ]
+    .flatMap((value) => {
+      try {
+        return [value, interpolate(value, environmentContext(w))];
+      } catch {
+        return [value];
+      }
+    })
+    .filter((v) => v && !v.includes("${"));
 }
 export function redactTree<T>(value: T, secrets: string[]): T {
   const structural = new Set([
@@ -117,14 +139,15 @@ export function redactTree<T>(value: T, secrets: string[]): T {
       })
       .join("");
   }
-  function visit(v: any, key = ""): any {
-    if (structural.has(key)) return v;
+  function visit(v: any, key = "", payload = false): any {
+    payload ||= key === "actual" || key === "expected";
+    if (!payload && structural.has(key)) return v;
     if (typeof v === "string") return mask(v);
-    if (Array.isArray(v)) return v.map((x) => visit(x));
+    if (Array.isArray(v)) return v.map((x) => visit(x, "", payload));
     if (v && typeof v === "object") {
       const out: Record<string, unknown> = {};
       for (const [k, x] of Object.entries(v))
-        if (k !== "source") out[k] = visit(x, k);
+        if (k !== "source") out[k] = visit(x, k, payload);
       return out;
     }
     return v;
