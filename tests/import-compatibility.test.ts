@@ -11,7 +11,7 @@ import {
 import { importDocument } from "../src/importers";
 import { WorkspaceStore } from "../src/storage/store";
 
-function talendExport(
+function repositoryExport(
   uri: Record<string, unknown>,
   host = "https://example.test",
 ) {
@@ -46,7 +46,7 @@ const ctx = {
   requests: [],
   responses: {},
 };
-describe("bare Talend environment variables", () => {
+describe("bare repository environment variables", () => {
   it.each([
     "${host}/health",
     '${"host"}/health',
@@ -93,13 +93,13 @@ describe("bare Talend environment variables", () => {
   });
 });
 
-describe("Talend URL semantics", () => {
+describe("repository URL semantics", () => {
   it.each(["http://example.test", "https://example.test"])(
     "does not invent a scheme before %s",
     async (host) => {
       const w = importDocument(
         JSON.stringify(
-          talendExport({ host: "${host}", path: "/health" }, host),
+          repositoryExport({ host: "${host}", path: "/health" }, host),
         ),
       ).workspace;
       expect(w.requests[0]!.url).toBe("${host}/health");
@@ -113,7 +113,7 @@ describe("Talend URL semantics", () => {
     async (scheme) => {
       const w = importDocument(
         JSON.stringify(
-          talendExport({ scheme, host: '${"host"}', path: "/health" }),
+          repositoryExport({ scheme, host: '${"host"}', path: "/health" }),
         ),
       ).workspace;
       expect(w.requests[0]!.url).toBe('${"host"}/health');
@@ -127,7 +127,7 @@ describe("Talend URL semantics", () => {
     async (scheme) => {
       const w = importDocument(
         JSON.stringify(
-          talendExport(
+          repositoryExport(
             {
               scheme: { name: scheme },
               host: "${host}",
@@ -151,7 +151,7 @@ describe("Talend URL semantics", () => {
   it("rejects an expanded URL still missing a protocol instead of choosing one", async () => {
     const w = importDocument(
       JSON.stringify(
-        talendExport({ host: "${host}", path: "/health" }, "example.test"),
+        repositoryExport({ host: "${host}", path: "/health" }, "example.test"),
       ),
     ).workspace;
     await expect(
@@ -174,9 +174,9 @@ function legacyRequest(id: string, uri: Record<string, unknown>, url: string) {
     },
   };
 }
-describe("repairing previously imported Talend URLs", () => {
+describe("repairing previously imported repository URLs", () => {
   it("persists only exact legacy URL repairs and reports modified, draft and unverified records", async () => {
-    const db = new WorkspaceStore("talend-repair-" + crypto.randomUUID());
+    const db = new WorkspaceStore("repository-repair-" + crypto.randomUUID());
     try {
       const w = newWorkspace();
       const source = {
@@ -244,7 +244,7 @@ describe("repairing previously imported Talend URLs", () => {
     }
   });
   it("leaves ambiguous source records and explicit HTTPS URLs unchanged", async () => {
-    const db = new WorkspaceStore("talend-source-" + crypto.randomUUID());
+    const db = new WorkspaceStore("repository-source-" + crypto.randomUUID());
     try {
       const w = newWorkspace();
       w.requests = [
@@ -271,7 +271,7 @@ describe("repairing previously imported Talend URLs", () => {
     }
   });
   it("rolls back an automatic repair if snapshot persistence fails", async () => {
-    const db = new WorkspaceStore("talend-rollback-" + crypto.randomUUID());
+    const db = new WorkspaceStore("repository-rollback-" + crypto.randomUUID());
     try {
       const w: Workspace = newWorkspace();
       w.requests = [
@@ -297,7 +297,7 @@ describe("repairing previously imported Talend URLs", () => {
 
 it("flags an obvious doubled protocol without source for manual review without rewriting it", async () => {
   const db = new WorkspaceStore(
-    "talend-double-protocol-" + crypto.randomUUID(),
+    "repository-double-protocol-" + crypto.randomUUID(),
   );
   try {
     const w = newWorkspace();

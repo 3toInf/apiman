@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 
 // Only synthetic localhost fixtures, written into this test browser's isolated database.
-export async function verifyTalendCompatibility(page, origin) {
+export async function verifyImportCompatibility(page, origin) {
   await page.evaluate(async (origin) => {
     const db = await new Promise((resolve, reject) => {
       const open = indexedDB.open("apiman");
@@ -117,8 +117,8 @@ export async function verifyTalendCompatibility(page, origin) {
         {
           entity: {
             type: "Request",
-            id: "fresh-talend",
-            name: "Fresh Talend import",
+            id: "fresh-repository",
+            name: "Fresh repository import",
             method: { name: "GET" },
             uri: { host: "${nested}", path: "/fresh" },
           },
@@ -130,7 +130,7 @@ export async function verifyTalendCompatibility(page, origin) {
     .getByRole("button", { name: "Preview import", exact: true })
     .click();
   await page.getByRole("button", { name: "Import data", exact: true }).click();
-  await select("Fresh Talend import");
+  await select("Fresh repository import");
   assert.equal(await url.inputValue(), "${nested}/fresh");
   await send();
   await page
@@ -161,6 +161,6 @@ export async function verifyTalendCompatibility(page, origin) {
     .click();
   await select("Echo test");
   console.log(
-    "PASS Chromium: Talend bare/nested variables, preserved scheme, persisted legacy repair, modified/draft protection, actionable URL errors",
+    "PASS Chromium: repository bare/nested variables, preserved scheme, persisted legacy repair, modified/draft protection, actionable URL errors",
   );
 }

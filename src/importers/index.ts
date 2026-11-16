@@ -3,7 +3,7 @@ import { environmentContext } from "../core/model";
 import { parse } from "yaml";
 import { validateWorkspace } from "../core/schema";
 import type { ImportReport, Workspace } from "../core/model";
-import { importTalend } from "./talend";
+import { importRepositoryV6 } from "./repository-v6";
 import {
   importPostman,
   importHar,
@@ -33,7 +33,8 @@ export function importDocument(text: string): ImportReport {
       warnings: [],
       errors: [],
     };
-  } else if (d.entities && d.version !== undefined) report = importTalend(d);
+  } else if (d.entities && d.version !== undefined)
+    report = importRepositoryV6(d);
   else if (d.info && Array.isArray(d.item)) report = importPostman(d);
   else if (d.log?.version === "1.2" && Array.isArray(d.log.entries))
     report = importHar(d);
@@ -44,7 +45,7 @@ export function importDocument(text: string): ImportReport {
     report = importOpenApi(d);
   else
     throw new Error(
-      "Unrecognized format. Use Talend v6, apiman, Postman v2, OpenAPI, HAR 1.2 or curl.",
+      "Unrecognized format. Use Repository JSON v6, apiman, Postman v2, OpenAPI, HAR 1.2 or curl.",
     );
   report.workspace = validateWorkspace(report.workspace);
   const ctx = environmentContext(report.workspace);

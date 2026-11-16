@@ -11,7 +11,7 @@ const context = {
   responses: {},
   requests: [],
 };
-describe("Talend expressions", () => {
+describe("expression interpreter", () => {
   it("resolves nested environment values and leaves literal constants intact", () => {
     expect(interpolate('https://${"host"}/${"nested"}', context)).toBe(
       "https://example.test/secret",

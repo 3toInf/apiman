@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { importDocument, exportWorkspace, exportCurl } from "../src/importers";
 import { newWorkspace, newRequest } from "../src/core/model";
-const talend = {
+const repository = {
   version: 6,
   entities: [
     {
@@ -37,8 +37,8 @@ const talend = {
   ],
 };
 describe("data portability", () => {
-  it("imports real Talend v6 shape without flattening hierarchy or losing secrets flags", () => {
-    const report = importDocument(JSON.stringify(talend));
+  it("imports real repository v6 shape without flattening hierarchy or losing secrets flags", () => {
+    const report = importDocument(JSON.stringify(repository));
     expect(report.workspace.nodes[0]?.name).toBe("Demo");
     expect(report.workspace.requests[0]?.url).toBe(
       "https://example.test/hello",
@@ -49,7 +49,7 @@ describe("data portability", () => {
     expect(report.errors).toEqual([]);
   });
   it("redacts private values on native export and roundtrips all request structure", () => {
-    const w = importDocument(JSON.stringify(talend)).workspace;
+    const w = importDocument(JSON.stringify(repository)).workspace;
     const output = exportWorkspace(w);
     expect(output).not.toContain("secret");
     const restored = importDocument(output).workspace;
@@ -129,7 +129,7 @@ describe("data portability", () => {
   });
 });
 
-it("converts Talend comparison/subject/path assertions and scenario order", () => {
+it("converts repository comparison/subject/path assertions and scenario order", () => {
   const source = {
     version: 6,
     entities: [
@@ -251,7 +251,7 @@ it("imports published official v6 fixtures and the chained scenario fixture", as
   const { readFileSync } = await import("node:fs");
   const official = importDocument(
     readFileSync(
-      new URL("./fixtures/talend-official-v6.json", import.meta.url),
+      new URL("./fixtures/repository-public-v6.json", import.meta.url),
       "utf8",
     ),
   );
@@ -320,11 +320,11 @@ it("exports a selected scenario with external request dependencies", async () =>
   expect(restored.scenarios[0]?.requestIds).toEqual([r.id]);
 });
 
-it("imports the native Talend roundtrip scenario and null private values", async () => {
+it("imports the native repository roundtrip scenario and null private values", async () => {
   const { readFileSync } = await import("node:fs");
   const report = importDocument(
     readFileSync(
-      new URL("./fixtures/talend-roundtrip-v6.json", import.meta.url),
+      new URL("./fixtures/repository-roundtrip-v6.json", import.meta.url),
       "utf8",
     ),
   );

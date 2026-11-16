@@ -44,7 +44,7 @@ import { validateWorkspace } from "../core/schema";
 import { runScenario } from "../core/runner";
 import { interpolate, bindRequestReferences } from "../core/expressions";
 import { sensitiveValues } from "../importers";
-import type { TalendUrlRepairReport } from "../importers/talend-url";
+import type { ImportedUrlRepairReport } from "../importers/imported-url";
 import {
   store,
   mergeWorkspace,
@@ -79,7 +79,7 @@ export function App() {
   const [dialog, setDialog] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [urlRepairs, setUrlRepairs] = useState<TalendUrlRepairReport>();
+  const [urlRepairs, setUrlRepairs] = useState<ImportedUrlRepairReport>();
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState<RunReport>();
   const [runName, setRunName] = useState("");
@@ -107,7 +107,7 @@ export function App() {
           if (!row) throw e;
           saved = validateWorkspace(row.workspace);
           fail(
-            "Could not save automatic Talend URL repairs. Original data was preserved: " +
+            "Could not save automatic URL repairs. Original data was preserved: " +
               errorText(e),
           );
         }
@@ -808,8 +808,7 @@ export function App() {
                   <FolderOpen size={30} />
                   <p>Your repository is empty</p>
                   <small>
-                    Create a request or import your Talend repository to get
-                    started.
+                    Create a request or import a collection to get started.
                   </small>
                   <Button
                     className="text-button"
@@ -972,8 +971,8 @@ export function App() {
               <div className="inline">
                 <span className="grow">
                   Repaired {urlRepairs.repaired.length} previously imported
-                  Talend URL(s). {urlRepairs.review.length} request(s) need
-                  manual review.
+                  URL(s). {urlRepairs.review.length} request(s) need manual
+                  review.
                 </span>
                 <Button
                   title="Dismiss URL repair notice"
@@ -986,7 +985,7 @@ export function App() {
                 <details>
                   <summary>Review preserved requests and drafts</summary>
                   <p>
-                    Only unchanged URLs confirmed by their original Talend data
+                    Only unchanged URLs confirmed by their original import data
                     were repaired. Review these items before sending or saving.
                     Re-importing the repository would create duplicates.
                   </p>
@@ -1004,7 +1003,7 @@ export function App() {
                           ? "Unsaved draft preserved"
                           : item.reason === "modified"
                             ? "Modified URL preserved"
-                            : "Original Talend URL could not be verified"}
+                            : "Original imported URL could not be verified"}
                       </li>
                     ))}
                   </ul>
@@ -1118,7 +1117,7 @@ export function App() {
                 <span className="eyebrow">YOUR APIS. YOUR WORKSPACE.</span>
                 <h1>Make your next request.</h1>
                 <p>
-                  A familiar place to build, organize and test your APIs.
+                  Build, organize and test your APIs in one local workspace.
                   <br />
                   Everything stays in this browser.
                 </p>
@@ -1135,7 +1134,7 @@ export function App() {
                     <Database size={20} />
                     <strong>Bring your work</strong>
                     <span>
-                      Talend, Postman, OpenAPI,
+                      Collections, OpenAPI,
                       <br />
                       HAR and cURL imports.
                     </span>

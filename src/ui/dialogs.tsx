@@ -224,7 +224,7 @@ export function ImportDialog({
   return (
     <Modal title="Import repository" wide onClose={onClose}>
       <p className="section-note">
-        Talend v6 JSON · apiman · Postman v2 · OpenAPI / Swagger · HAR 1.2 ·
+        Repository JSON v6 · apiman · Postman v2 · OpenAPI / Swagger · HAR 1.2 ·
         cURL
       </p>
       <label className="button file-button">

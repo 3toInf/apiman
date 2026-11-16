@@ -18,12 +18,12 @@ function authorityAndPath(uri: RecordValue): string {
 }
 
 /** Keep a missing scheme missing; the environment can supply the complete origin. */
-export function talendUrl(uri: RecordValue): string {
+export function repositoryUrl(uri: RecordValue): string {
   const scheme = schemeName(uri);
   return (scheme ? scheme + "://" : "") + authorityAndPath(uri);
 }
 
-export type TalendUrlRepairReport = {
+export type ImportedUrlRepairReport = {
   repaired: { id: string; name: string }[];
   review: {
     id: string;
@@ -59,24 +59,24 @@ function legacyUrls(
   ).toLowerCase();
   return {
     previous: oldScheme + "://" + authorityAndPath(uri),
-    corrected: talendUrl(uri),
+    corrected: repositoryUrl(uri),
   };
 }
 
 /** Never overwrite a draft or a saved URL that differs from the old import output. */
-export function repairTalendUrls(
+export function repairImportedUrls(
   workspace: Workspace,
   drafts: RequestDefinition[],
 ): {
   workspace: Workspace;
-  report: TalendUrlRepairReport;
+  report: ImportedUrlRepairReport;
 } {
-  const report: TalendUrlRepairReport = { repaired: [], review: [] };
+  const report: ImportedUrlRepairReport = { repaired: [], review: [] };
   const protectedIds = new Set(drafts.map((r) => r.id));
   const reviewIds = new Set<string>();
   const review = (
     r: RequestDefinition,
-    reason: TalendUrlRepairReport["review"][number]["reason"],
+    reason: ImportedUrlRepairReport["review"][number]["reason"],
   ) => {
     if (reviewIds.has(r.id)) return;
     report.review.push({ id: r.id, name: r.name, reason });

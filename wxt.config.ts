@@ -36,7 +36,7 @@ export default defineConfig({
   manifest: ({ browser }) => ({
     name: "apiman — API Tester",
     description:
-      "A local API workspace: requests, environments, assertions and scenarios. Import your Talend repository.",
+      "A local API workspace for requests, environments, assertions and automated scenarios.",
     permissions: ["storage", "unlimitedStorage"],
     optional_host_permissions: ["http://*/*", "https://*/*"],
     action: {

@@ -1603,7 +1603,7 @@ kbd {
     max-height: 50vh;
   }
 }
-/* Talend-style chrome: light top navigation, dark repository, stacked work cards. */
+/* Workspace chrome: light navigation, dark repository, stacked work cards. */
 .topbar {
   background: #fff;
   color: #43566a;

@@ -9,19 +9,20 @@ import {
   type AssertionTarget,
   type Operator,
 } from "../core/model";
-import { talendUrl } from "./talend-url";
-export function importTalend(data: any): ImportReport {
+import { repositoryUrl } from "./imported-url";
+export function importRepositoryV6(data: any): ImportReport {
   if (data.version !== 6)
     throw new Error(
-      `Unsupported Talend export version: ${data.version}. Version 6 is supported.`,
+      `Unsupported repository export version: ${data.version}. Version 6 is supported.`,
     );
   if (!Array.isArray(data.entities))
-    throw new Error("Talend entities must be an array");
+    throw new Error("Repository entities must be an array");
   const workspace = newWorkspace();
   const warnings: string[] = [];
   function pairs(items: any): Pair[] {
     if (items == null) return [];
-    if (!Array.isArray(items)) throw new Error("Invalid Talend key/value list");
+    if (!Array.isArray(items))
+      throw new Error("Invalid repository key/value list");
     return items.map((p: any) => ({
       ...pair(String(p.name ?? ""), String(p.value ?? "")),
       enabled: p.enabled !== false,
@@ -34,14 +35,14 @@ export function importTalend(data: any): ImportReport {
     for (const [order, item] of items.entries()) {
       const e = item.entity;
       if (!e || typeof e.type !== "string")
-        throw new Error("Malformed Talend entity");
+        throw new Error("Malformed repository entity");
       const name = String(e.name ?? "Untitled");
       const id = String(e.id ?? uid());
       if (["Project", "Service", "Scenario"].includes(e.type)) {
         const kind = e.type.toLowerCase() as "project" | "service" | "scenario";
         workspace.nodes.push({ id, parentId, kind, name, order });
         if (!Array.isArray(item.children ?? []))
-          throw new Error("Invalid Talend children");
+          throw new Error("Invalid repository children");
         walk(item.children ?? [], id);
         if (kind === "scenario")
           workspace.scenarios.push({
@@ -65,7 +66,7 @@ export function importTalend(data: any): ImportReport {
         const u = e.uri;
         if (typeof u === "string") r.url = u;
         else if (u && typeof u === "object") {
-          r.url = talendUrl(u);
+          r.url = repositoryUrl(u);
           r.query = pairs(u.query?.items);
           if (u.query?.delimiter && u.query.delimiter !== "&")
             r.unsupported.push("Nonstandard query delimiter");
@@ -99,7 +100,7 @@ export function importTalend(data: any): ImportReport {
             r.unsupported.push("Unrecognized assertions structure");
           else
             for (const a of e.assertions) {
-              const assertion = talendAssertion(a);
+              const assertion = repositoryAssertion(a);
               if (assertion) r.assertions.push(assertion);
               else
                 r.unsupported.push(
@@ -137,7 +138,7 @@ export function importTalend(data: any): ImportReport {
   }
   walk(data.entities);
   if (data.environments != null && !Array.isArray(data.environments))
-    throw new Error("Invalid Talend environments");
+    throw new Error("Invalid repository environments");
   workspace.environments = (data.environments ?? []).map((e: any) => ({
     id: String(e.id ?? uid()),
     name: String(e.name ?? "Environment"),
@@ -148,9 +149,9 @@ export function importTalend(data: any): ImportReport {
     })),
   }));
   workspace.activeEnvironmentId = workspace.environments[0]?.id;
-  return { format: "Talend v6", workspace, warnings, errors: [] };
+  return { format: "Repository JSON v6", workspace, warnings, errors: [] };
 }
-function talendAssertion(a: any): Assertion | undefined {
+function repositoryAssertion(a: any): Assertion | undefined {
   const targets: Record<string, AssertionTarget> = {
     ResponseHeader: "header",
     ResponseJsonBody: "json",

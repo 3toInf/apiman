@@ -1,6 +1,6 @@
 # apiman
 
-A local API testing workspace for users moving from Talend API Tester to Firefox or Zen. Built with TypeScript, React, and WXT, apiman uses Manifest V3 on both Chrome and Firefox. The interface follows the familiar repository tree, request, response, assertion, and scenario workflow. This is an independent implementation with no affiliation with Talend or Qlik.
+apiman is a local API testing workspace for Chrome, Firefox, and Zen. Organize requests, manage environments, inspect responses, validate assertions, and automate multi-step scenarios. Built with TypeScript, React, and WXT, it runs as a Manifest V3 extension and keeps workspace data in your browser.
 
 ## Installation
 
@@ -29,18 +29,18 @@ Minimum versions: Chrome 120 and Firefox 140. Automated acceptance tests run in 
 
 Authentication supports Basic, Bearer, and API Key. Request bodies support JSON, XML, text, URL-encoded forms, multipart file uploads, and binary files. Uploaded files are stored locally in IndexedDB.
 
-## Talend migration and backups
+## Import, export, and backups
 
-Export your API Tester repository as JSON from Talend, then select **Import → Choose file → Preview import → Import data** in apiman. The preview shows item counts and compatibility notes. Imports append to the current repository without replacing existing items.
+Select **Import → Choose file → Preview import → Import data** to import a collection, API definition, or workspace backup. You can also paste a supported document or cURL command. The preview shows item counts and compatibility notes. Imports append to the current repository without replacing existing items.
 
-- The primary migration format is **Talend JSON version 6**, including projects, services, scenario steps, requests, environment variables, enabled states, assertions, expressions, and references between requests. See [tests/fixtures/README.md](tests/fixtures/README.md) for fixture sources.
-- Explicit HTTP/HTTPS schemes are preserved. If Talend leaves the scheme unset, apiman keeps the URL template unchanged: `${host}/health` works when `host` is `https://example.test`. The final expanded URL must include HTTP or HTTPS; apiman does not guess a protocol.
+- **Repository JSON v6** imports preserve projects, services, scenario steps, requests, environment variables, enabled states, assertions, expressions, and references between requests. See [tests/fixtures/README.md](tests/fixtures/README.md) for fixture sources.
+- Explicit HTTP/HTTPS schemes are preserved. If an imported request leaves the scheme unset, apiman keeps the URL template unchanged: `${host}/health` works when `host` is `https://example.test`. The final expanded URL must include HTTP or HTTPS; apiman does not guess a protocol.
 - Bound request references are tracked by ID, so renaming items or importing projects with duplicate names preserves their original dependencies. Ambiguous references entered manually produce an error and require an explicit project path.
 - Unsupported execution settings are listed and block sending. Use **Discard unsupported settings** only after reviewing the configuration. Full backups retain the original request source data.
 - Postman v2, OpenAPI / Swagger, HAR 1.2, and common cURL commands can also be imported. OpenAPI imports generate request examples; fill in parameters and authentication, and review compatibility notes before sending. Postman scripts and shell commands are never executed.
-- **Export** creates a native apiman JSON backup that can be imported in either browser. You can select a project and optionally include private values and uploaded files. Both are excluded by default. Compatibility with importing these backups back into Talend is not guaranteed.
+- **Export** creates a native apiman JSON backup that can be imported in either browser. You can select a project and optionally include private values and uploaded files. Both are excluded by default. This backup format is intended for apiman.
 
-If an earlier apiman build added `http://` to imported URL templates, update/reload the extension and reopen the workspace. It repairs a saved URL only when the retained Talend source confirms the scheme was unset and the URL still exactly matches the old importer's output. Modified URLs, requests with unsaved drafts, and records without verifiable source data are left unchanged. A notice shows the repair count and lists items needing manual review. Check preserved drafts before saving them. Re-importing the same repository is unnecessary and would create duplicates.
+If an earlier apiman build added `http://` to imported URL templates, update/reload the extension and reopen the workspace. It repairs a saved URL only when the retained import source confirms the scheme was unset and the URL still exactly matches the old importer's output. Modified URLs, requests with unsaved drafts, and records without verifiable source data are left unchanged. A notice shows the repair count and lists items needing manual review. Check preserved drafts before saving them. Re-importing the same repository is unnecessary and would create duplicates.
 
 Expression examples:
 
@@ -84,7 +84,7 @@ The `web-ext` check allows three reviewed `innerHTML` notices: two internal Reac
 
 Code is organized by responsibility: `src/core` contains requests, expressions, assertions, and execution; `src/importers` contains format adapters; `src/storage` handles local persistence; and `src/ui` implements the workspace. Build artifacts are in `.output`, and test screenshots are in `test-results`. See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for implementation and review records.
 
-Assertion comparisons follow Talend's type semantics: numbers compare by value, ordinary strings compare by length, and JSON assertions preserve the distinction between arrays and objects. See the [Talend assertion operator documentation](https://help.qlik.com/talend/en-US/api-tester-user-guide/Cloud/assertion-operators).
+Assertion comparisons depend on the value type: numbers compare by value, ordinary strings compare by length, and JSON assertions preserve the distinction between arrays and objects. Compatibility references are documented with the [import fixtures](tests/fixtures/README.md).
 
 ### Extension icons
 

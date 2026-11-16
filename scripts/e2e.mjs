@@ -1,4 +1,4 @@
-import { verifyTalendCompatibility } from "./e2e-talend.mjs";
+import { verifyImportCompatibility } from "./e2e-import-compatibility.mjs";
 import {
   verifyRepositoryTree,
   verifyFirefoxRepositoryTree,
@@ -105,7 +105,7 @@ try {
       await page.getByLabel("Request URL", { exact: true }).inputValue(),
       origin + "/echo",
     );
-    await verifyTalendCompatibility(page, origin);
+    await verifyImportCompatibility(page, origin);
     await verifyRepositoryTree(page);
     await page.getByRole("button", { name: "Import", exact: true }).click();
     await page
@@ -187,7 +187,7 @@ try {
 
     const flow = JSON.parse(
       (
-        await readFile("tests/fixtures/talend-roundtrip-v6.json", "utf8")
+        await readFile("tests/fixtures/repository-roundtrip-v6.json", "utf8")
       ).replaceAll("127.0.0.1", `127.0.0.1:${server.address().port}`),
     );
     await page.getByRole("button", { name: "Import", exact: true }).click();
