@@ -85,3 +85,14 @@ The `web-ext` check allows three reviewed `innerHTML` notices: two internal Reac
 Code is organized by responsibility: `src/core` contains requests, expressions, assertions, and execution; `src/importers` contains format adapters; `src/storage` handles local persistence; and `src/ui` implements the workspace. Build artifacts are in `.output`, and test screenshots are in `test-results`. See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for implementation and review records.
 
 Assertion comparisons follow Talend's type semantics: numbers compare by value, ordinary strings compare by length, and JSON assertions preserve the distinction between arrays and objects. See the [Talend assertion operator documentation](https://help.qlik.com/talend/en-US/api-tester-user-guide/Cloud/assertion-operators).
+
+### Extension icons
+
+The original artwork is in `assets/apiman.jpeg`. PNG icons at 16, 32, 48, 64, 96, 128, 256, and 512 pixels are committed in `public/` and used for the extension, toolbar, and workspace tab. Normal builds need no image tools. To regenerate the icons, install Python 3 and Pillow, then run:
+
+```sh
+python3 scripts/generate-icons.py
+npm run build
+```
+
+The generator preserves the original design and uses Lanczos downsampling. Reload the extension and reopen the workspace tab to see updated icons.
