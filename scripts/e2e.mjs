@@ -1,3 +1,4 @@
+import { verifyTalendCompatibility } from "./e2e-talend.mjs";
 import { chromium, firefox as playwrightFirefox } from "@playwright/test";
 import { Builder, By } from "selenium-webdriver";
 import firefox from "selenium-webdriver/firefox.js";
@@ -100,6 +101,7 @@ try {
       await page.getByLabel("Request URL", { exact: true }).inputValue(),
       origin + "/echo",
     );
+    await verifyTalendCompatibility(page, origin);
     await page.getByRole("button", { name: "Import", exact: true }).click();
     await page
       .getByLabel("Import text")

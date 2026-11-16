@@ -167,19 +167,24 @@ export function evaluate(
     if (!t) throw new Error("Unexpected end of expression");
     return t;
   };
+  function variable(name: string): string {
+    if (!Object.hasOwn(ctx.variables, name))
+      throw new Error(
+        `Environment variable "${name}" is not defined in the active environment`,
+      );
+    if (stack.includes(name))
+      throw new Error(
+        `Cyclic environment reference: ${[...stack, name].join(" → ")}`,
+      );
+    return interpolate(ctx.variables[name]!, ctx, [...stack, name]);
+  }
   function resolve(name: string): unknown {
     if (
       name.startsWith("@") &&
       ctx.requests.some((r) => r.id === name.slice(1))
     )
       return { refId: name.slice(1), refType: "request" };
-    if (Object.hasOwn(ctx.variables, name)) {
-      if (stack.includes(name))
-        throw new Error(
-          `Cyclic environment reference: ${[...stack, name].join(" → ")}`,
-        );
-      return interpolate(ctx.variables[name]!, ctx, [...stack, name]);
-    }
+    if (Object.hasOwn(ctx.variables, name)) return variable(name);
     const requests = ctx.requests.filter((r) => r.name === name);
     const nodes = (ctx.nodes ?? []).filter((n) => n.name === name);
     if (requests.length + nodes.length > 1)
@@ -287,6 +292,7 @@ export function evaluate(
     else if (token.type === "number") value = Number(token.value);
     else if (token.value === "true" || token.value === "false")
       value = token.value === "true";
+    else if (token.type === "name") value = variable(token.value);
     else throw new Error(`Unsupported expression: ${token.value}`);
     while (peek() === ".") {
       take();

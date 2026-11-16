@@ -9,6 +9,7 @@ import {
   type AssertionTarget,
   type Operator,
 } from "../core/model";
+import { talendUrl } from "./talend-url";
 export function importTalend(data: any): ImportReport {
   if (data.version !== 6)
     throw new Error(
@@ -64,13 +65,8 @@ export function importTalend(data: any): ImportReport {
         const u = e.uri;
         if (typeof u === "string") r.url = u;
         else if (u && typeof u === "object") {
-          const scheme = String(
-            u.scheme?.name ?? (u.scheme?.secure ? "https" : "http"),
-          ).toLowerCase();
-          const port = u.port ? ":" + String(u.port) : "";
-          r.url = `${scheme}://${u.host ?? ""}${port}${u.path ?? ""}`;
+          r.url = talendUrl(u);
           r.query = pairs(u.query?.items);
-          if (u.fragment) r.url += "#" + String(u.fragment);
           if (u.query?.delimiter && u.query.delimiter !== "&")
             r.unsupported.push("Nonstandard query delimiter");
         } else throw new Error(`Missing URL in ${name}`);

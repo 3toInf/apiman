@@ -9,6 +9,10 @@ import {
 } from "../core/model";
 import { validateWorkspace } from "../core/schema";
 import { redactTree } from "../importers";
+import {
+  repairTalendUrls,
+  type TalendUrlRepairReport,
+} from "../importers/talend-url";
 export type HistoryEntry = {
   id: string;
   request: RequestDefinition;
@@ -31,9 +35,31 @@ export class WorkspaceStore extends Dexie {
       drafts: "id",
     });
   }
-  async load() {
-    const row = await this.snapshots.get("main");
-    return row ? validateWorkspace(row.workspace) : undefined;
+  async load(onRepairs?: (report: TalendUrlRepairReport) => void) {
+    const restored = await this.transaction(
+      "rw",
+      this.snapshots,
+      this.drafts,
+      async () => {
+        const row = await this.snapshots.get("main");
+        const drafts = await this.drafts.toArray();
+        const repair = repairTalendUrls(
+          row ? validateWorkspace(row.workspace) : newWorkspace(),
+          drafts.map((d) => d.request),
+        );
+        if (row && repair.report.repaired.length)
+          await this.snapshots.put({
+            id: "main",
+            workspace: validateWorkspace(repair.workspace),
+          });
+        return {
+          workspace: row ? repair.workspace : undefined,
+          report: repair.report,
+        };
+      },
+    );
+    onRepairs?.(restored.report);
+    return restored.workspace;
   }
   async save(
     workspace: Workspace,

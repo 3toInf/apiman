@@ -18,6 +18,21 @@ export type CompiledRequest = {
 };
 const forbidden =
   /^(accept-charset|accept-encoding|access-control-request-headers|access-control-request-method|connection|content-length|cookie2?|date|dnt|expect|host|keep-alive|origin|permissions-policy|referer|te|trailer|transfer-encoding|upgrade|user-agent|via|proxy-.*|sec-.*)$/i;
+export function parseHttpUrl(renderedUrl: string): URL {
+  let url: URL;
+  try {
+    url = new URL(renderedUrl);
+  } catch {
+    throw new Error(
+      "Enter a complete HTTP(S) URL starting with http:// or https:// after expanding environment variables",
+    );
+  }
+  if (!["http:", "https:"].includes(url.protocol))
+    throw new Error("Only HTTP and HTTPS URLs are supported");
+  if (url.username || url.password)
+    throw new Error("Use the Authentication editor instead of URL credentials");
+  return url;
+}
 export async function compileRequest(
   r: RequestDefinition,
   ctx: EvalContext,
@@ -30,17 +45,7 @@ export async function compileRequest(
   const bound = bindRequestReferences(r, ctx);
   const render = (s: string) =>
     interpolate(s, { ...ctx, referenceIds: bound.referenceIds });
-  const renderedUrl = render(r.url);
-  let url: URL;
-  try {
-    url = new URL(renderedUrl);
-  } catch {
-    throw new Error("Enter a complete HTTP(S) URL");
-  }
-  if (!["http:", "https:"].includes(url.protocol))
-    throw new Error("Only HTTP and HTTPS URLs are supported");
-  if (url.username || url.password)
-    throw new Error("Use the Authentication editor instead of URL credentials");
+  const url = parseHttpUrl(render(r.url));
   for (const p of r.query.filter((p) => p.enabled && p.name))
     url.searchParams.append(render(p.name), render(p.value));
   const headers = new Headers();

@@ -37,11 +37,12 @@ import {
   type Scenario,
   type RunReport,
 } from "../core/model";
-import { compileRequest, executeRequest } from "../core/http";
+import { compileRequest, executeRequest, parseHttpUrl } from "../core/http";
 import { validateWorkspace } from "../core/schema";
 import { runScenario } from "../core/runner";
 import { interpolate, bindRequestReferences } from "../core/expressions";
 import { sensitiveValues } from "../importers";
+import type { TalendUrlRepairReport } from "../importers/talend-url";
 import {
   store,
   mergeWorkspace,
@@ -76,6 +77,7 @@ export function App() {
   const [dialog, setDialog] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [urlRepairs, setUrlRepairs] = useState<TalendUrlRepairReport>();
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState<RunReport>();
   const [runName, setRunName] = useState("");
@@ -90,7 +92,23 @@ export function App() {
     let alive = true;
     (async () => {
       try {
-        const saved = (await store.load()) ?? newWorkspace();
+        let saved: Workspace;
+        try {
+          saved =
+            (await store.load((report) => {
+              if (alive && (report.repaired.length || report.review.length))
+                setUrlRepairs(report);
+            })) ?? newWorkspace();
+        } catch (e) {
+          // A failed repair transaction must not prevent access to the original workspace.
+          const row = await store.snapshots.get("main");
+          if (!row) throw e;
+          saved = validateWorkspace(row.workspace);
+          fail(
+            "Could not save automatic Talend URL repairs. Original data was preserved: " +
+              errorText(e),
+          );
+        }
         const entries = await store.drafts.toArray();
         const restored = Object.fromEntries(
           entries.map((d) => [d.id, d.request]),
@@ -287,7 +305,7 @@ export function App() {
           .referenceIds,
       };
       const permission = requestAccess([
-        new URL(interpolate(r.url, context)).origin + "/*",
+        parseHttpUrl(interpolate(r.url, context)).origin + "/*",
       ]);
       await permission;
       const compiled = await compileRequest(r, context, (id) =>
@@ -885,6 +903,55 @@ export function App() {
               </Button>
             </div>
           </div>
+          {urlRepairs && (
+            <div
+              className="warning-banner"
+              data-testid="url-repair-notice"
+              role="status"
+            >
+              <div className="inline">
+                <span className="grow">
+                  Repaired {urlRepairs.repaired.length} previously imported
+                  Talend URL(s). {urlRepairs.review.length} request(s) need
+                  manual review.
+                </span>
+                <Button
+                  title="Dismiss URL repair notice"
+                  onClick={() => setUrlRepairs(undefined)}
+                >
+                  <X size={15} />
+                </Button>
+              </div>
+              {urlRepairs.review.length > 0 && (
+                <details>
+                  <summary>Review preserved requests and drafts</summary>
+                  <p>
+                    Only unchanged URLs confirmed by their original Talend data
+                    were repaired. Review these items before sending or saving.
+                    Re-importing the repository would create duplicates.
+                  </p>
+                  <ul>
+                    {urlRepairs.review.map((item) => (
+                      <li key={item.id}>
+                        <Button
+                          className="text-button"
+                          onClick={() => select(item.id)}
+                        >
+                          {item.name}
+                        </Button>
+                        {" — "}
+                        {item.reason === "draft"
+                          ? "Unsaved draft preserved"
+                          : item.reason === "modified"
+                            ? "Modified URL preserved"
+                            : "Original Talend URL could not be verified"}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          )}
           {error && (
             <div className="global-error">
               <AlertCircle size={17} />
